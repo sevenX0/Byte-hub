@@ -1,23 +1,25 @@
--- BITE HUB | Brookhaven RP v6.0
+-- BITE HUB | Brookhaven RP
 -- Creditos: Bunny
--- Discord: discord.gg/bitehub
 -- Desenvolvedor: Bunny
 -- Dono: ketylnbel
 -- Sub-dono: alanzoka2507
 
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local TextChatService = game:GetService("TextChatService")
+local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
 
--- Configurações globais
-getgenv().BiteHub = {
+-- Sistema de tags
+local TagSystem = {
     Owner = "ketylnbel",
     SubOwner = "alanzoka2507",
-    Version = "6.0",
-    Developer = "Bunny"
+    BiteHubUsers = {}
 }
 
--- Tela de carregamento profissional
+-- Tela de carregamento RÁPIDA
 local loadingScreen = Instance.new("ScreenGui")
 loadingScreen.Name = "BiteHubLoading"
 loadingScreen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -25,195 +27,99 @@ loadingScreen.ResetOnSpawn = false
 
 local loadingFrame = Instance.new("Frame")
 loadingFrame.Size = UDim2.new(1, 0, 1, 0)
-loadingFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-loadingFrame.BackgroundTransparency = 0.1
+loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 loadingFrame.BorderSizePixel = 0
 loadingFrame.Parent = loadingScreen
 
--- Logo animada
-local logoContainer = Instance.new("Frame")
-logoContainer.Size = UDim2.new(0, 300, 0, 150)
-logoContainer.Position = UDim2.new(0.5, -150, 0.35, -75)
-logoContainer.BackgroundTransparency = 1
-logoContainer.Parent = loadingFrame
+local logo = Instance.new("TextLabel")
+logo.Size = UDim2.new(0, 300, 0, 100)
+logo.Position = UDim2.new(0.5, -150, 0.4, -50)
+logo.BackgroundTransparency = 1
+logo.Text = "BITE HUB"
+logo.TextColor3 = Color3.fromRGB(0, 255, 136)
+logo.Font = Enum.Font.GothamBlack
+logo.TextSize = 48
+logo.TextStrokeTransparency = 0.3
+logo.Parent = loadingFrame
 
-local logoText = Instance.new("TextLabel")
-logoText.Size = UDim2.new(1, 0, 0.6, 0)
-logoText.BackgroundTransparency = 1
-logoText.Text = "BITE HUB"
-logoText.TextColor3 = Color3.fromRGB(0, 255, 136)
-logoText.Font = Enum.Font.GothamBlack
-logoText.TextSize = 48
-logoText.TextStrokeTransparency = 0.3
-logoText.TextStrokeColor3 = Color3.fromRGB(0, 100, 50)
-logoText.Parent = logoContainer
-
-local versionText = Instance.new("TextLabel")
-versionText.Size = UDim2.new(1, 0, 0.4, 0)
-versionText.Position = UDim2.new(0, 0, 0.6, 0)
-versionText.BackgroundTransparency = 1
-versionText.Text = "v6.0 | Loading..."
-versionText.TextColor3 = Color3.fromRGB(180, 180, 180)
-versionText.Font = Enum.Font.Gotham
-versionText.TextSize = 18
-versionText.Parent = logoContainer
-
--- Barra de progresso
-local progressContainer = Instance.new("Frame")
-progressContainer.Size = UDim2.new(0, 400, 0, 30)
-progressContainer.Position = UDim2.new(0.5, -200, 0.55, 0)
-progressContainer.BackgroundTransparency = 1
-progressContainer.Parent = loadingFrame
-
-local progressBg = Instance.new("Frame")
-progressBg.Size = UDim2.new(1, 0, 0.3, 0)
-progressBg.Position = UDim2.new(0, 0, 0.35, 0)
-progressBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-progressBg.BorderSizePixel = 0
-progressBg.Parent = progressContainer
-
-local progressBar = Instance.new("Frame")
-progressBar.Size = UDim2.new(0, 0, 1, 0)
-progressBar.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-progressBar.BorderSizePixel = 0
-progressBar.Parent = progressBg
-
-local percentText = Instance.new("TextLabel")
-percentText.Size = UDim2.new(1, 0, 1, 0)
-percentText.BackgroundTransparency = 1
-percentText.Text = "0%"
-percentText.TextColor3 = Color3.fromRGB(255, 255, 255)
-percentText.Font = Enum.Font.GothamBold
-percentText.TextSize = 14
-percentText.Parent = progressContainer
-
--- Texto de status
-local statusText = Instance.new("TextLabel")
-statusText.Size = UDim2.new(0, 400, 0, 25)
-statusText.Position = UDim2.new(0.5, -200, 0.6, 0)
-statusText.BackgroundTransparency = 1
-statusText.Text = "Inicializando..."
-statusText.TextColor3 = Color3.fromRGB(200, 200, 200)
-statusText.Font = Enum.Font.Gotham
-statusText.TextSize = 16
-statusText.Parent = loadingFrame
-
--- Créditos
-local creditsText = Instance.new("TextLabel")
-creditsText.Size = UDim2.new(0, 400, 0, 20)
-creditsText.Position = UDim2.new(0.5, -200, 0.9, 0)
-creditsText.BackgroundTransparency = 1
-creditsText.Text = "Desenvolvido por Bunny • discord.gg/bitehub"
-creditsText.TextColor3 = Color3.fromRGB(150, 150, 150)
-creditsText.Font = Enum.Font.Gotham
-creditsText.TextSize = 12
-creditsText.Parent = loadingFrame
+local loadingText = Instance.new("TextLabel")
+loadingText.Size = UDim2.new(0, 300, 0, 30)
+loadingText.Position = UDim2.new(0.5, -150, 0.55, 0)
+loadingText.BackgroundTransparency = 1
+loadingText.Text = "Carregando..."
+loadingText.TextColor3 = Color3.fromRGB(200, 200, 200)
+loadingText.Font = Enum.Font.Gotham
+loadingText.TextSize = 18
+loadingText.Parent = loadingFrame
 
 loadingScreen.Parent = game.CoreGui
 
--- Função de carregamento
-local function updateLoading(percent, text)
-    progressBar:TweenSize(UDim2.new(percent/100, 0, 1, 0), "Out", "Linear", 0.2)
-    percentText.Text = math.floor(percent) .. "%"
-    statusText.Text = text
-    task.wait(0.05)
-end
-
--- Simulação de carregamento
-local loadingSteps = {
-    {5, "Verificando executor..."},
-    {15, "Carregando bibliotecas..."},
-    {30, "Configurando módulos..."},
-    {45, "Inicializando sistemas..."},
-    {60, "Preparando interface..."},
-    {75, "Otimizando performance..."},
-    {85, "Configurando tags..."},
-    {95, "Finalizando..."},
-    {100, "Pronto! Iniciando Bite Hub..."}
-}
-
-for _, step in ipairs(loadingSteps) do
-    updateLoading(step[1], step[2])
+-- Carregamento rápido
+for i = 1, 5 do
+    loadingText.Text = "Carregando" .. string.rep(".", i % 4)
     task.wait(0.1)
 end
 
-task.wait(0.5)
 loadingScreen:Destroy()
 
--- Configurações do jogo
-workspace.FallenPartsDestroyHeight = -math.huge
-if setfpscap then setfpscap(144) end
-
--- Sistema de tags
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local TagSystem = {
-    Owner = "ketylnbel",
-    SubOwner = "alanzoka2507",
-    Tags = {
-        ["ketylnbel"] = {
-            Text = "[DONO]",
-            Color = Color3.fromRGB(255, 50, 50),
-            Size = UDim2.new(0, 120, 0, 40)
-        },
-        ["alanzoka2507"] = {
-            Text = "[SUB-DONO]",
-            Color = Color3.fromRGB(255, 165, 0),
-            Size = UDim2.new(0, 140, 0, 40)
-        }
-    }
-}
-
--- Função para aplicar tag
-local function applyPlayerTag(player)
+-- Função para criar tag profissional (como na imagem)
+local function createProfessionalTag(player)
     if not player or not player.Character then return end
     
-    local function createTag()
+    local function applyTag()
         local character = player.Character
-        local head = character:WaitForChild("Head", 5)
+        local head = character:WaitForChild("Head", 2)
         if not head then return end
         
         -- Remove tag antiga
         local oldTag = head:FindFirstChild("BiteHubTag")
         if oldTag then oldTag:Destroy() end
         
-        -- Verifica se é dono ou sub-dono
-        local tagInfo
+        -- Verifica que tipo de tag aplicar
+        local tagText = ""
+        local tagColor = Color3.fromRGB(255, 255, 255)
+        
         if player.Name == TagSystem.Owner then
-            tagInfo = TagSystem.Tags[TagSystem.Owner]
+            tagText = "OWNER"
+            tagColor = Color3.fromRGB(255, 50, 50)
         elseif player.Name == TagSystem.SubOwner then
-            tagInfo = TagSystem.Tags[TagSystem.SubOwner]
+            tagText = "SUB-OWNER"
+            tagColor = Color3.fromRGB(255, 165, 0)
+        elseif TagSystem.BiteHubUsers[player.Name] then
+            tagText = "BITE HUB USER"
+            tagColor = Color3.fromRGB(0, 255, 136)
         else
-            -- Tag padrão para usuários do hub
-            tagInfo = {
-                Text = "[BITE HUB USER]",
-                Color = Color3.fromRGB(0, 255, 136),
-                Size = UDim2.new(0, 150, 0, 40)
-            }
+            return -- Não aplica tag se não for usuário do hub
         end
         
-        -- Cria a tag
+        -- Cria tag profissional (estilo da imagem)
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "BiteHubTag"
-        billboard.Size = tagInfo.Size
-        billboard.StudsOffset = Vector3.new(0, 3.5, 0)
+        billboard.Size = UDim2.new(0, 200, 0, 40)
+        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
         billboard.AlwaysOnTop = true
         billboard.ResetOnSpawn = false
         billboard.Parent = head
         
+        local background = Instance.new("Frame")
+        background.Size = UDim2.new(1, 0, 1, 0)
+        background.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+        background.BackgroundTransparency = 0.3
+        background.BorderSizePixel = 0
+        background.Parent = billboard
+        
         local textLabel = Instance.new("TextLabel")
         textLabel.Size = UDim2.new(1, 0, 1, 0)
         textLabel.BackgroundTransparency = 1
-        textLabel.Text = tagInfo.Text
-        textLabel.TextColor3 = tagInfo.Color
-        textLabel.TextScaled = true
+        textLabel.Text = tagText
+        textLabel.TextColor3 = tagColor
+        textLabel.TextSize = 18
         textLabel.Font = Enum.Font.GothamBold
         textLabel.TextStrokeTransparency = 0
         textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
         textLabel.Parent = billboard
         
-        -- Adiciona brilho para dono
+        -- Adiciona efeito de brilho para dono
         if player.Name == TagSystem.Owner then
             local glow = Instance.new("UIGradient")
             glow.Color = ColorSequence.new{
@@ -221,102 +127,286 @@ local function applyPlayerTag(player)
                 ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 200, 50)),
                 ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 50))
             }
-            glow.Rotation = 45
+            glow.Enabled = true
             glow.Parent = textLabel
         end
     end
     
-    pcall(createTag)
+    pcall(applyTag)
     player.CharacterAdded:Connect(function()
         task.wait(0.5)
-        pcall(createTag)
+        pcall(applyTag)
     end)
 end
 
--- Aplica tags para todos os jogadores
-for _, player in pairs(Players:GetPlayers()) do
-    applyPlayerTag(player)
-end
-Players.PlayerAdded:Connect(applyPlayerTag)
+-- Marca jogador atual como usuário Bite Hub
+TagSystem.BiteHubUsers[LocalPlayer.Name] = true
 
--- Carrega a biblioteca WindUI
+-- Aplica tags inicialmente
+for _, player in pairs(Players:GetPlayers()) do
+    createProfessionalTag(player)
+end
+Players.PlayerAdded:Connect(createProfessionalTag)
+
+-- Sistema de comandos
+local SavedSpeed = {}
+local ActiveJails = {}
+local JailLoops = {}
+
+local function getPlayer(nameString)
+    if not nameString then return nil end
+    local lowerName = nameString:lower()
+    
+    if lowerName == "me" or lowerName == "yo" then
+        return LocalPlayer
+    end
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Name:lower():match(lowerName) or p.DisplayName:lower():match(lowerName) then
+            return p
+        end
+    end
+    return nil
+end
+
+local Commands = {}
+
+function Commands.kick(targetName)
+    local targetP = getPlayer(targetName)
+    if targetP == LocalPlayer then
+        LocalPlayer:Kick("Bite Hub: Admin Kick")
+    end
+end
+
+function Commands.kill(targetName)
+    local targetP = getPlayer(targetName)
+    if targetP and targetP.Character then
+        targetP.Character:BreakJoints()
+    end
+end
+
+function Commands.bring(targetName)
+    local targetP = getPlayer(targetName)
+    local localChar = LocalPlayer.Character
+    local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
+    
+    if targetP and targetP.Character and localRoot then
+        local targetRoot = targetP.Character:FindFirstChild("HumanoidRootPart")
+        if targetRoot then
+            targetRoot.CFrame = localRoot.CFrame * CFrame.new(0, 0, -3)
+        end
+    end
+end
+
+function Commands.jail(targetName)
+    local targetP = getPlayer(targetName)
+    if not targetP or not targetP.Character then return end
+
+    local root = targetP.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local basePos = root.Position
+    local tName = targetP.Name
+    
+    if ActiveJails[tName] then Commands.unjail(tName) end
+
+    ActiveJails[tName] = {}
+
+    local function makePart(cf, s)
+        local p = Instance.new("Part")
+        p.Anchored = true
+        p.Size = s
+        p.CFrame = cf
+        p.Transparency = 0.3
+        p.Color = Color3.fromRGB(255, 100, 0)
+        p.Parent = workspace
+        table.insert(ActiveJails[tName], p)
+    end
+
+    makePart(CFrame.new(basePos + Vector3.new(5,0,0)),  Vector3.new(1,10,10))
+    makePart(CFrame.new(basePos + Vector3.new(-5,0,0)), Vector3.new(1,10,10))
+    makePart(CFrame.new(basePos + Vector3.new(0,0,5)),  Vector3.new(10,10,1))
+    makePart(CFrame.new(basePos + Vector3.new(0,0,-5)), Vector3.new(10,10,1))
+    makePart(CFrame.new(basePos + Vector3.new(0,5,0)),  Vector3.new(10,1,10))
+    makePart(CFrame.new(basePos + Vector3.new(0,-5,0)), Vector3.new(10,1,10))
+
+    if targetP == LocalPlayer then
+        JailLoops[tName] = RunService.Heartbeat:Connect(function()
+            if not LocalPlayer.Character or not root then return end
+            if (root.Position - basePos).Magnitude > 5 then
+                root.CFrame = CFrame.new(basePos)
+            end
+        end)
+    end
+end
+
+function Commands.unjail(targetName)
+    local targetP = getPlayer(targetName)
+    local tName = targetP and targetP.Name or targetName 
+
+    if ActiveJails[tName] then
+        for _, part in ipairs(ActiveJails[tName]) do
+            part:Destroy()
+        end
+        ActiveJails[tName] = nil
+    end
+
+    if JailLoops[tName] then
+        JailLoops[tName]:Disconnect()
+        JailLoops[tName] = nil
+    end
+end
+
+function Commands.view(targetName)
+    local targetP = getPlayer(targetName)
+    if targetP and targetP.Character then
+        local targetRoot = targetP.Character:FindFirstChild("HumanoidRootPart")
+        local localCam = workspace.CurrentCamera
+        
+        if targetRoot then
+            localCam.CameraSubject = targetRoot
+        end
+    end
+end
+
+function Commands.unview(targetName)
+    local localChar = LocalPlayer.Character
+    if localChar then
+        workspace.CurrentCamera.CameraSubject = localChar:FindFirstChildOfClass("Humanoid")
+    end
+end
+
+function Commands.annoy(targetName)
+    local targetP = getPlayer(targetName)
+    if targetP and targetP.Character then
+        local targetRoot = targetP.Character:FindFirstChild("HumanoidRootPart")
+        local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        
+        if targetRoot and localRoot then
+            -- Spam de teleportes
+            spawn(function()
+                for i = 1, 20 do
+                    localRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2)
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+end
+
+function Commands.unannoy(targetName)
+    -- Para loops de annoy
+    -- Implementação básica
+end
+
+function Commands.verify(target)
+    local ch = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+    if ch then ch:SendAsync("BiteHub_User") end
+end
+
+-- Painel Hexagon Hub (FUNCIONAL)
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
--- Cria a janela principal
 local Window = WindUI:CreateWindow({
-    Title = "👑 BITE HUB | Brookhaven RP",
+    Title = "👑 BITE HUB | ADMIN",
     Icon = "crown",
-    Author = "by: Bunny • Dono: ketylnbel",
+    Author = "by: Bunny | Owner: ketylnbel",
     Folder = "BiteHub",
-    Size = UDim2.fromOffset(600, 500),
+    Size = UDim2.fromOffset(580, 460),
     Transparent = true,
     Theme = "Dark",
-    Resizable = true,
-    SideBarWidth = 220,
-    BackgroundImage = "rbxassetid://102266309145667",
-    BackgroundImageTransparency = 0.3,
-    HideSearchBar = false,
-    ScrollBarEnabled = true,
+    Resizable = false,
+    SideBarWidth = 200,
+    HideSearchBar = true,
 })
 
--- ABA: INÍCIO
-local HomeTab = Window:Tab({ Title = "🏠 Início", Icon = "home" })
-local HomeSection = HomeTab:Section({ Title = "🌟 Status do Bite Hub", Icon = "activity", Opened = true })
+-- ABA: ADMIN
+local AdmTab = Window:Tab({ Title = "ADMIN", Icon = "shield" })
+local Section = AdmTab:Section({ Title = "COMMANDS", Icon = "zap", Opened = true })
 
-HomeSection:Label({
-    Title = "BITE HUB v6.0",
-    Desc = "O hub definitivo para Brookhaven RP"
-})
+local currentTarget = ""
 
-HomeSection:Label({
-    Title = "👤 Usuário: " .. LocalPlayer.Name,
-    Desc = "Status: 🟢 Conectado"
-})
+local function getPlayerNames()
+    local names = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(names, p.Name)
+        end
+    end
+    return names
+end
 
-HomeSection:Label({
-    Title = "👑 Dono do Script: ketylnbel",
-    Desc = "Desenvolvedor: Bunny"
-})
-
-HomeSection:Label({
-    Title = "⚡ Executor: Delta",
-    Desc = "Performance: Ótima"
-})
-
-HomeSection:Button({
-    Title = "🔄 Atualizar Hub",
-    Desc = "Reinicia o Bite Hub",
-    Callback = function()
-        Window:Notify({
-            Title = "Bite Hub",
-            Description = "Atualizando...",
-            Duration = 3
-        })
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/BiteHub/main.lua"))()
+local PlayerDropdown = Section:Dropdown({
+    Title = "SELECT PLAYER",
+    Values = getPlayerNames(),
+    Value = "",
+    Callback = function(val)
+        currentTarget = val
     end
 })
 
-HomeSection:Button({
-    Title = "📋 Copiar Discord",
-    Desc = "discord.gg/bitehub",
-    Callback = function()
-        setclipboard("https://discord.gg/bitehub")
-        Window:Notify({
-            Title = "Bite Hub",
-            Description = "Discord copiado!",
-            Duration = 3
-        })
-    end
-})
+Players.PlayerAdded:Connect(function() 
+    PlayerDropdown:SetValues(getPlayerNames()) 
+end)
 
--- ABA: JOGADOR
-local PlayerTab = Window:Tab({ Title = "👤 Jogador", Icon = "user" })
-local MovementSection = PlayerTab:Section({ Title = "🏃‍♂️ Movimento", Icon = "wind", Opened = true })
+Players.PlayerRemoving:Connect(function() 
+    PlayerDropdown:SetValues(getPlayerNames()) 
+end)
+
+-- Botões estilo Coquette (grandes e visíveis)
+local adminButtons = {
+    {Title = "KILL", Command = "kill", Color = Color3.fromRGB(255, 50, 50)},
+    {Title = "KICK", Command = "kick", Color = Color3.fromRGB(255, 100, 50)},
+    {Title = "BRING", Command = "bring", Color = Color3.fromRGB(50, 150, 255)},
+    {Title = "VIEW", Command = "view", Color = Color3.fromRGB(100, 200, 100)},
+    {Title = "UNVIEW", Command = "unview", Color = Color3.fromRGB(150, 150, 150)},
+    {Title = "ANNOY", Command = "annoy", Color = Color3.fromRGB(255, 200, 50)},
+    {Title = "UNANNOY", Command = "unannoy", Color = Color3.fromRGB(200, 150, 50)},
+    {Title = "JAIL", Command = "jail", Color = Color3.fromRGB(255, 100, 0)},
+    {Title = "UNJAIL", Command = "unjail", Color = Color3.fromRGB(200, 100, 50)},
+    {Title = "VERIFY", Command = "verify", Color = Color3.fromRGB(0, 255, 136)}
+}
+
+for _, btn in ipairs(adminButtons) do
+    Section:Button({
+        Title = btn.Title,
+        Desc = "Execute " .. btn.Command .. " on selected player",
+        Callback = function()
+            if btn.Command == "verify" then
+                Commands.verify()
+                Window:Notify({
+                    Title = "BITE HUB",
+                    Description = "Verification sent to chat!",
+                    Duration = 3
+                })
+            else
+                if currentTarget and currentTarget ~= "" then
+                    Commands[btn.Command](currentTarget)
+                    Window:Notify({
+                        Title = "BITE HUB",
+                        Description = btn.Command:upper() .. " executed on " .. currentTarget,
+                        Duration = 3
+                    })
+                else
+                    Window:Notify({
+                        Title = "ERROR",
+                        Description = "Select a player first!",
+                        Duration = 2
+                    })
+                end
+            end
+        end
+    })
+end
+
+-- ABA: PLAYER
+local PlayerTab = Window:Tab({ Title = "PLAYER", Icon = "user" })
+local PlayerSection = PlayerTab:Section({ Title = "MOVEMENT", Icon = "wind", Opened = true })
 
 local walkSpeed = 16
-MovementSection:Slider({
-    Title = "⚡ Velocidade",
-    Desc = "Ajusta velocidade de movimento",
+PlayerSection:Slider({
+    Title = "SPEED",
+    Desc = "Adjust walk speed",
     Min = 16,
     Max = 200,
     Default = 16,
@@ -328,9 +418,9 @@ MovementSection:Slider({
 })
 
 local jumpPower = 50
-MovementSection:Slider({
-    Title = "🦘 Força do Pulo",
-    Desc = "Ajusta altura do pulo",
+PlayerSection:Slider({
+    Title = "JUMP POWER",
+    Desc = "Adjust jump height",
     Min = 50,
     Max = 500,
     Default = 50,
@@ -342,14 +432,14 @@ MovementSection:Slider({
 })
 
 local noclipActive = false
-MovementSection:Toggle({
-    Title = "👻 Noclip",
-    Desc = "Atravessa paredes (Tecla N)",
+PlayerSection:Toggle({
+    Title = "NOCLIP",
+    Desc = "Walk through walls (Press N)",
     Default = false,
     Callback = function(state)
         noclipActive = state
         Window:Notify({
-            Title = "Bite Hub",
+            Title = "BITE HUB",
             Description = "Noclip: " .. (state and "ON" or "OFF"),
             Duration = 2
         })
@@ -357,66 +447,44 @@ MovementSection:Toggle({
 })
 
 local flyActive = false
-local flyVelocity
-MovementSection:Toggle({
-    Title = "✈️ Fly",
-    Desc = "Ativa modo voo (Tecla X)",
+PlayerSection:Toggle({
+    Title = "FLY",
+    Desc = "Fly mode (Press X)",
     Default = false,
     Callback = function(state)
         flyActive = state
         Window:Notify({
-            Title = "Bite Hub",
+            Title = "BITE HUB",
             Description = "Fly: " .. (state and "ON" or "OFF"),
             Duration = 2
         })
     end
 })
 
-local infiniteJump = false
-MovementSection:Toggle({
-    Title = "🦘 Pulo Infinito",
-    Desc = "Pula infinitamente (Tecla Espaço)",
-    Default = false,
-    Callback = function(state)
-        infiniteJump = state
-        Window:Notify({
-            Title = "Bite Hub",
-            Description = "Pulo Infinito: " .. (state and "ON" or "OFF"),
-            Duration = 2
-        })
-    end
-})
-
--- ABA: TELEPORTE
-local TeleportTab = Window:Tab({ Title = "📍 Teleporte", Icon = "map-pin" })
-local LocationsSection = TeleportTab:Section({ Title = "🏙️ Locais Principais", Icon = "map", Opened = true })
+-- ABA: TELEPORT
+local TeleportTab = Window:Tab({ Title = "TELEPORT", Icon = "map-pin" })
+local TeleportSection = TeleportTab:Section({ Title = "LOCATIONS", Icon = "map", Opened = true })
 
 local locations = {
-    {Name = "🏠 Casa Inicial", CFrame = CFrame.new(-88, 4, 543)},
-    {Name = "🏛️ Prefeitura", CFrame = CFrame.new(-233, 4, 424)},
+    {Name = "🏠 House", CFrame = CFrame.new(-88, 4, 543)},
+    {Name = "🏛️ City Hall", CFrame = CFrame.new(-233, 4, 424)},
     {Name = "🏥 Hospital", CFrame = CFrame.new(313, 4, -228)},
-    {Name = "🚔 Delegacia", CFrame = CFrame.new(422, 4, -172)},
-    {Name = "🛍️ Shopping", CFrame = CFrame.new(-527, 9, -244)},
-    {Name = "✈️ Aeroporto", CFrame = CFrame.new(-1337, 4, -494)},
-    {Name = "🏦 Banco", CFrame = CFrame.new(358, 4, 241)},
-    {Name = "⛽ Posto", CFrame = CFrame.new(604, 4, 202)},
-    {Name = "🎢 Parque", CFrame = CFrame.new(-1006, 4, 442)},
-    {Name = "🏰 Mansão", CFrame = CFrame.new(-896, 5, -817)},
-    {Name = "⚓ Porto", CFrame = CFrame.new(-1567, 4, 126)},
-    {Name = "🎰 Cassino", CFrame = CFrame.new(857, 5, -441)}
+    {Name = "🚔 Police", CFrame = CFrame.new(422, 4, -172)},
+    {Name = "🛍️ Mall", CFrame = CFrame.new(-527, 9, -244)},
+    {Name = "✈️ Airport", CFrame = CFrame.new(-1337, 4, -494)}
 }
 
 for _, loc in ipairs(locations) do
-    LocationsSection:Button({
+    TeleportSection:Button({
         Title = loc.Name,
-        Desc = "Clique para teleportar",
+        Desc = "Teleport to " .. loc.Name,
         Callback = function()
             local char = LocalPlayer.Character
             if char then
                 char:SetPrimaryPartCFrame(loc.CFrame)
                 Window:Notify({
-                    Title = "Teleporte",
-                    Description = "Teleportado para " .. loc.Name,
+                    Title = "TELEPORT",
+                    Description = "Teleported to " .. loc.Name,
                     Duration = 3
                 })
             end
@@ -424,272 +492,72 @@ for _, loc in ipairs(locations) do
     })
 end
 
--- Teleporte para jogadores
-local PlayerTP = TeleportTab:Section({ Title = "👥 Teleporte para Jogadores", Icon = "users" })
+-- ABA: SETTINGS
+local SettingsTab = Window:Tab({ Title = "SETTINGS", Icon = "settings" })
+local SettingsSection = SettingsTab:Section({ Title = "CONFIG", Icon = "sliders", Opened = true })
 
-local function getPlayers()
-    local list = {}
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            table.insert(list, player.Name)
-        end
-    end
-    return list
-end
-
-local selectedPlayer = ""
-local playerDropdown = PlayerTP:Dropdown({
-    Title = "Selecionar Jogador",
-    Desc = "Escolha um jogador",
-    Values = getPlayers(),
-    Callback = function(value)
-        selectedPlayer = value
-    end
-})
-
-PlayerTP:Button({
-    Title = "🚀 Teleportar para Jogador",
-    Desc = "Vá até o jogador selecionado",
-    Callback = function()
-        if selectedPlayer ~= "" then
-            local target = Players:FindFirstChild(selectedPlayer)
-            if target and target.Character then
-                LocalPlayer.Character:SetPrimaryPartCFrame(target.Character.HumanoidRootPart.CFrame)
-                Window:Notify({
-                    Title = "Teleporte",
-                    Description = "Teleportado para " .. selectedPlayer,
-                    Duration = 3
-                })
-            end
-        end
-    end
-})
-
-PlayerTP:Button({
-    Title = "🔄 Atualizar Lista",
-    Desc = "Atualiza lista de jogadores",
-    Callback = function()
-        playerDropdown:SetValues(getPlayers())
-        Window:Notify({
-            Title = "Bite Hub",
-            Description = "Lista atualizada!",
-            Duration = 2
-        })
-    end
-})
-
--- ABA: ADMIN
-local AdminTab = Window:Tab({ Title = "👑 Admin", Icon = "shield" })
-local AdminSection = AdminTab:Section({ Title = "⚡ Comandos Admin", Icon = "zap", Opened = true })
-
-local adminTarget = ""
-local adminDropdown = AdminSection:Dropdown({
-    Title = "Selecionar Alvo",
-    Desc = "Escolha quem será afetado",
-    Values = getPlayers(),
-    Callback = function(value)
-        adminTarget = value
-    end
-})
-
-AdminSection:Button({
-    Title = "💀 Kill",
-    Desc = "Mata o jogador selecionado",
-    Callback = function()
-        if adminTarget ~= "" then
-            local target = Players:FindFirstChild(adminTarget)
-            if target and target.Character then
-                target.Character:BreakJoints()
-                Window:Notify({
-                    Title = "Admin",
-                    Description = adminTarget .. " foi morto!",
-                    Duration = 3
-                })
-            end
-        end
-    end
-})
-
-AdminSection:Button({
-    Title = "🧊 Freeze",
-    Desc = "Congela o jogador",
-    Callback = function()
-        if adminTarget ~= "" then
-            local target = Players:FindFirstChild(adminTarget)
-            if target and target.Character then
-                local root = target.Character:FindFirstChild("HumanoidRootPart")
-                if root then root.Anchored = true end
-                Window:Notify({
-                    Title = "Admin",
-                    Description = adminTarget .. " congelado!",
-                    Duration = 3
-                })
-            end
-        end
-    end
-})
-
-AdminSection:Button({
-    Title = "🔥 Unfreeze",
-    Desc = "Descongela o jogador",
-    Callback = function()
-        if adminTarget ~= "" then
-            local target = Players:FindFirstChild(adminTarget)
-            if target and target.Character then
-                local root = target.Character:FindFirstChild("HumanoidRootPart")
-                if root then root.Anchored = false end
-                Window:Notify({
-                    Title = "Admin",
-                    Description = adminTarget .. " descongelado!",
-                    Duration = 3
-                })
-            end
-        end
-    end
-})
-
-AdminSection:Button({
-    Title = "🔒 Jail",
-    Desc = "Prende o jogador em uma jaula",
-    Callback = function()
-        if adminTarget ~= "" then
-            local target = Players:FindFirstChild(adminTarget)
-            if target and target.Character then
-                local root = target.Character:FindFirstChild("HumanoidRootPart")
-                if root then
-                    -- Cria jaula simples
-                    local jail = Instance.new("Part")
-                    jail.Size = Vector3.new(10, 10, 10)
-                    jail.Anchored = true
-                    jail.Transparency = 0.5
-                    jail.Color = Color3.fromRGB(255, 100, 0)
-                    jail.CFrame = root.CFrame
-                    jail.Parent = workspace
-                    
-                    root.Anchored = true
-                    Window:Notify({
-                        Title = "Admin",
-                        Description = adminTarget .. " preso!",
-                        Duration = 3
-                    })
-                end
-            end
-        end
-    end
-})
-
--- ABA: CONFIGURAÇÕES
-local SettingsTab = Window:Tab({ Title = "⚙️ Configurações", Icon = "settings" })
-local UISection = SettingsTab:Section({ Title = "🎨 Interface", Icon = "palette", Opened = true })
-
-UISection:Keybind({
-    Title = "Tecla do Menu",
-    Desc = "Abre/fecha o menu",
+SettingsSection:Keybind({
+    Title = "MENU KEY",
+    Desc = "Open/close menu",
     Default = Enum.KeyCode.RightControl,
     Callback = function()
         Window:Toggle()
     end
 })
 
-UISection:Toggle({
-    Title = "🌙 Modo Noturno",
-    Desc = "Alterna tema claro/escuro",
-    Default = true,
-    Callback = function(state)
-        Window:Notify({
-            Title = "Interface",
-            Description = "Modo Noturno: " .. (state and "ON" or "OFF"),
-            Duration = 2
-        })
-    end
-})
-
-UISection:Button({
-    Title = "📊 Ver Estatísticas",
-    Desc = "Mostra FPS e ping",
-    Callback = function()
-        local fps = math.floor(1 / game:GetService("RunService").RenderStepped:Wait())
-        local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
-        Window:Notify({
-            Title = "Estatísticas",
-            Description = "FPS: " .. fps .. " | Ping: " .. math.floor(ping) .. "ms",
-            Duration = 4
-        })
-    end
-})
-
-local SystemSection = SettingsTab:Section({ Title = "🔧 Sistema", Icon = "cpu" })
-
-SystemSection:Button({
-    Title = "💾 Salvar Configurações",
-    Desc = "Salva suas configurações atuais",
-    Callback = function()
-        Window:Notify({
-            Title = "Sistema",
-            Description = "Configurações salvas!",
-            Duration = 2
-        })
-    end
-})
-
-SystemSection:Button({
-    Title = "🔧 Recarregar Tags",
-    Desc = "Recarrega todas as tags",
+SettingsSection:Button({
+    Title = "REFRESH TAGS",
+    Desc = "Reload all player tags",
     Callback = function()
         for _, player in pairs(Players:GetPlayers()) do
-            applyPlayerTag(player)
+            createProfessionalTag(player)
         end
         Window:Notify({
-            Title = "Sistema",
-            Description = "Tags recarregadas!",
+            Title = "BITE HUB",
+            Description = "Tags refreshed!",
             Duration = 2
         })
     end
 })
 
-SystemSection:Button({
-    Title = "❌ Fechar Bite Hub",
-    Desc = "Fecha completamente o hub",
+SettingsSection:Button({
+    Title = "CLOSE HUB",
+    Desc = "Close Bite Hub",
     Callback = function()
-        Window:Notify({
-            Title = "Bite Hub",
-            Description = "Fechando... Obrigado por usar!",
-            Duration = 3
-        })
-        task.wait(2)
         Window:Destroy()
+        Window:Notify({
+            Title = "BITE HUB",
+            Description = "Goodbye!",
+            Duration = 2
+        })
     end
 })
 
--- Sistema de teclas de atalho
+-- Teclas de atalho
 local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
 
 UIS.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.N then
         noclipActive = not noclipActive
         Window:Notify({
-            Title = "Bite Hub",
+            Title = "BITE HUB",
             Description = "Noclip: " .. (noclipActive and "ON" or "OFF"),
             Duration = 2
         })
     elseif input.KeyCode == Enum.KeyCode.X then
         flyActive = not flyActive
         Window:Notify({
-            Title = "Bite Hub",
+            Title = "BITE HUB",
             Description = "Fly: " .. (flyActive and "ON" or "OFF"),
             Duration = 2
         })
-    elseif input.KeyCode == Enum.KeyCode.Space and infiniteJump then
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
+    elseif input.KeyCode == Enum.KeyCode.RightControl then
+        Window:Toggle()
     end
 end)
 
 -- Loop do Noclip
-RS.Stepped:Connect(function()
+RunService.Stepped:Connect(function()
     if noclipActive and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -700,16 +568,14 @@ RS.Stepped:Connect(function()
 end)
 
 -- Loop do Fly
-RS.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function()
     if flyActive and LocalPlayer.Character then
         local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if root then
-            if not flyVelocity then
-                flyVelocity = Instance.new("BodyVelocity")
-                flyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
-                flyVelocity.Velocity = Vector3.new(0, 0, 0)
-                flyVelocity.Parent = root
-            end
+            local flyVelocity = root:FindFirstChild("FlyVelocity") or Instance.new("BodyVelocity")
+            flyVelocity.Name = "FlyVelocity"
+            flyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+            flyVelocity.Velocity = Vector3.new(0, 0, 0)
             
             local cam = workspace.CurrentCamera.CFrame
             local move = Vector3.new(0, 0, 0)
@@ -721,56 +587,28 @@ RS.Heartbeat:Connect(function()
             if UIS:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0, 1, 0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then move = move - Vector3.new(0, 1, 0) end
             
-            flyVelocity.Velocity = move * 80
+            flyVelocity.Velocity = move * 100
+            flyVelocity.Parent = root
         end
-    elseif flyVelocity then
-        flyVelocity:Destroy()
-        flyVelocity = nil
+    else
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            local flyVelocity = root:FindFirstChild("FlyVelocity")
+            if flyVelocity then flyVelocity:Destroy() end
+        end
     end
 end)
 
--- Atualizar listas automaticamente
-Players.PlayerAdded:Connect(function()
-    task.wait(1)
-    playerDropdown:SetValues(getPlayers())
-    adminDropdown:SetValues(getPlayers())
-end)
-
-Players.PlayerRemoving:Connect(function()
-    task.wait(1)
-    playerDropdown:SetValues(getPlayers())
-    adminDropdown:SetValues(getPlayers())
-end)
-
--- Notificação de inicialização
+-- Notificação inicial
 Window:Notify({
-    Title = "👑 BITE HUB v6.0",
-    Description = "Carregado com sucesso!\nUsuário: " .. LocalPlayer.Name .. "\nDono: ketylnbel | Dev: Bunny\nPressione RightControl para abrir/fechar",
-    Duration = 6
+    Title = "👑 BITE HUB LOADED",
+    Description = "Welcome " .. LocalPlayer.Name .. "!\nOwner: ketylnbel | Dev: Bunny\nPress RightControl to open/close",
+    Duration = 5
 })
 
--- Som de inicialização
-local sound = Instance.new("Sound")
-sound.SoundId = "rbxassetid://9046384533"
-sound.Volume = 0.4
-sound:Play()
-game.Debris:AddItem(sound, 3)
-
-print([[
-========================================
-          BITE HUB v6.0 LOADED          
-          Dono: ketylnbel
-          Desenvolvedor: Bunny
-          Usuário: ]] .. LocalPlayer.Name .. [[
-          Tags: ✅ Ativas
-          Status: 🟢 ONLINE
-========================================
-]])
-
--- Mensagem no chat (opcional)
-task.wait(2)
-local chatService = game:GetService("TextChatService")
-local channel = chatService.TextChannels:FindFirstChild("RBXGeneral")
-if channel then
-    channel:SendAsync("[BITE HUB] Carregado com sucesso! v6.0 by Bunny")
-end
+print("========================================")
+print("           BITE HUB LOADED              ")
+print("           Owner: ketylnbel             ")
+print("           Developer: Bunny             ")
+print("           User: " .. LocalPlayer.Name)
+print("========================================")
