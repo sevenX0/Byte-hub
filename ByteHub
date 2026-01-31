@@ -1,614 +1,3525 @@
--- BITE HUB | Brookhaven RP
--- Creditos: Bunny
--- Desenvolvedor: Bunny
--- Dono: ketylnbel
--- Sub-dono: alanzoka2507
-
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local TextChatService = game:GetService("TextChatService")
-local RunService = game:GetService("RunService")
-local Debris = game:GetService("Debris")
-local Workspace = game:GetService("Workspace")
-local LocalPlayer = Players.LocalPlayer
-
--- Sistema de tags
-local TagSystem = {
-    Owner = "ketylnbel",
-    SubOwner = "alanzoka2507",
-    BiteHubUsers = {}
-}
-
--- Tela de carregamento RÁPIDA
-local loadingScreen = Instance.new("ScreenGui")
-loadingScreen.Name = "BiteHubLoading"
-loadingScreen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-loadingScreen.ResetOnSpawn = false
-
-local loadingFrame = Instance.new("Frame")
-loadingFrame.Size = UDim2.new(1, 0, 1, 0)
-loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-loadingFrame.BorderSizePixel = 0
-loadingFrame.Parent = loadingScreen
-
-local logo = Instance.new("TextLabel")
-logo.Size = UDim2.new(0, 300, 0, 100)
-logo.Position = UDim2.new(0.5, -150, 0.4, -50)
-logo.BackgroundTransparency = 1
-logo.Text = "BITE HUB"
-logo.TextColor3 = Color3.fromRGB(0, 255, 136)
-logo.Font = Enum.Font.GothamBlack
-logo.TextSize = 48
-logo.TextStrokeTransparency = 0.3
-logo.Parent = loadingFrame
-
-local loadingText = Instance.new("TextLabel")
-loadingText.Size = UDim2.new(0, 300, 0, 30)
-loadingText.Position = UDim2.new(0.5, -150, 0.55, 0)
-loadingText.BackgroundTransparency = 1
-loadingText.Text = "Carregando..."
-loadingText.TextColor3 = Color3.fromRGB(200, 200, 200)
-loadingText.Font = Enum.Font.Gotham
-loadingText.TextSize = 18
-loadingText.Parent = loadingFrame
-
-loadingScreen.Parent = game.CoreGui
-
--- Carregamento rápido
-for i = 1, 5 do
-    loadingText.Text = "Carregando" .. string.rep(".", i % 4)
-    task.wait(0.1)
-end
-
-loadingScreen:Destroy()
-
--- Função para criar tag profissional (como na imagem)
-local function createProfessionalTag(player)
-    if not player or not player.Character then return end
-    
-    local function applyTag()
-        local character = player.Character
-        local head = character:WaitForChild("Head", 2)
-        if not head then return end
-        
-        -- Remove tag antiga
-        local oldTag = head:FindFirstChild("BiteHubTag")
-        if oldTag then oldTag:Destroy() end
-        
-        -- Verifica que tipo de tag aplicar
-        local tagText = ""
-        local tagColor = Color3.fromRGB(255, 255, 255)
-        
-        if player.Name == TagSystem.Owner then
-            tagText = "OWNER"
-            tagColor = Color3.fromRGB(255, 50, 50)
-        elseif player.Name == TagSystem.SubOwner then
-            tagText = "SUB-OWNER"
-            tagColor = Color3.fromRGB(255, 165, 0)
-        elseif TagSystem.BiteHubUsers[player.Name] then
-            tagText = "BITE HUB USER"
-            tagColor = Color3.fromRGB(0, 255, 136)
-        else
-            return -- Não aplica tag se não for usuário do hub
-        end
-        
-        -- Cria tag profissional (estilo da imagem)
-        local billboard = Instance.new("BillboardGui")
-        billboard.Name = "BiteHubTag"
-        billboard.Size = UDim2.new(0, 200, 0, 40)
-        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-        billboard.AlwaysOnTop = true
-        billboard.ResetOnSpawn = false
-        billboard.Parent = head
-        
-        local background = Instance.new("Frame")
-        background.Size = UDim2.new(1, 0, 1, 0)
-        background.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-        background.BackgroundTransparency = 0.3
-        background.BorderSizePixel = 0
-        background.Parent = billboard
-        
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Size = UDim2.new(1, 0, 1, 0)
-        textLabel.BackgroundTransparency = 1
-        textLabel.Text = tagText
-        textLabel.TextColor3 = tagColor
-        textLabel.TextSize = 18
-        textLabel.Font = Enum.Font.GothamBold
-        textLabel.TextStrokeTransparency = 0
-        textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        textLabel.Parent = billboard
-        
-        -- Adiciona efeito de brilho para dono
-        if player.Name == TagSystem.Owner then
-            local glow = Instance.new("UIGradient")
-            glow.Color = ColorSequence.new{
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 50)),
-                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 200, 50)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 50))
-            }
-            glow.Enabled = true
-            glow.Parent = textLabel
-        end
-    end
-    
-    pcall(applyTag)
-    player.CharacterAdded:Connect(function()
-        task.wait(0.5)
-        pcall(applyTag)
-    end)
-end
-
--- Marca jogador atual como usuário Bite Hub
-TagSystem.BiteHubUsers[LocalPlayer.Name] = true
-
--- Aplica tags inicialmente
-for _, player in pairs(Players:GetPlayers()) do
-    createProfessionalTag(player)
-end
-Players.PlayerAdded:Connect(createProfessionalTag)
-
--- Sistema de comandos
-local SavedSpeed = {}
-local ActiveJails = {}
-local JailLoops = {}
-
-local function getPlayer(nameString)
-    if not nameString then return nil end
-    local lowerName = nameString:lower()
-    
-    if lowerName == "me" or lowerName == "yo" then
-        return LocalPlayer
-    end
-
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p.Name:lower():match(lowerName) or p.DisplayName:lower():match(lowerName) then
-            return p
-        end
-    end
-    return nil
-end
-
-local Commands = {}
-
-function Commands.kick(targetName)
-    local targetP = getPlayer(targetName)
-    if targetP == LocalPlayer then
-        LocalPlayer:Kick("Bite Hub: Admin Kick")
-    end
-end
-
-function Commands.kill(targetName)
-    local targetP = getPlayer(targetName)
-    if targetP and targetP.Character then
-        targetP.Character:BreakJoints()
-    end
-end
-
-function Commands.bring(targetName)
-    local targetP = getPlayer(targetName)
-    local localChar = LocalPlayer.Character
-    local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
-    
-    if targetP and targetP.Character and localRoot then
-        local targetRoot = targetP.Character:FindFirstChild("HumanoidRootPart")
-        if targetRoot then
-            targetRoot.CFrame = localRoot.CFrame * CFrame.new(0, 0, -3)
-        end
-    end
-end
-
-function Commands.jail(targetName)
-    local targetP = getPlayer(targetName)
-    if not targetP or not targetP.Character then return end
-
-    local root = targetP.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    local basePos = root.Position
-    local tName = targetP.Name
-    
-    if ActiveJails[tName] then Commands.unjail(tName) end
-
-    ActiveJails[tName] = {}
-
-    local function makePart(cf, s)
-        local p = Instance.new("Part")
-        p.Anchored = true
-        p.Size = s
-        p.CFrame = cf
-        p.Transparency = 0.3
-        p.Color = Color3.fromRGB(255, 100, 0)
-        p.Parent = workspace
-        table.insert(ActiveJails[tName], p)
-    end
-
-    makePart(CFrame.new(basePos + Vector3.new(5,0,0)),  Vector3.new(1,10,10))
-    makePart(CFrame.new(basePos + Vector3.new(-5,0,0)), Vector3.new(1,10,10))
-    makePart(CFrame.new(basePos + Vector3.new(0,0,5)),  Vector3.new(10,10,1))
-    makePart(CFrame.new(basePos + Vector3.new(0,0,-5)), Vector3.new(10,10,1))
-    makePart(CFrame.new(basePos + Vector3.new(0,5,0)),  Vector3.new(10,1,10))
-    makePart(CFrame.new(basePos + Vector3.new(0,-5,0)), Vector3.new(10,1,10))
-
-    if targetP == LocalPlayer then
-        JailLoops[tName] = RunService.Heartbeat:Connect(function()
-            if not LocalPlayer.Character or not root then return end
-            if (root.Position - basePos).Magnitude > 5 then
-                root.CFrame = CFrame.new(basePos)
-            end
-        end)
-    end
-end
-
-function Commands.unjail(targetName)
-    local targetP = getPlayer(targetName)
-    local tName = targetP and targetP.Name or targetName 
-
-    if ActiveJails[tName] then
-        for _, part in ipairs(ActiveJails[tName]) do
-            part:Destroy()
-        end
-        ActiveJails[tName] = nil
-    end
-
-    if JailLoops[tName] then
-        JailLoops[tName]:Disconnect()
-        JailLoops[tName] = nil
-    end
-end
-
-function Commands.view(targetName)
-    local targetP = getPlayer(targetName)
-    if targetP and targetP.Character then
-        local targetRoot = targetP.Character:FindFirstChild("HumanoidRootPart")
-        local localCam = workspace.CurrentCamera
-        
-        if targetRoot then
-            localCam.CameraSubject = targetRoot
-        end
-    end
-end
-
-function Commands.unview(targetName)
-    local localChar = LocalPlayer.Character
-    if localChar then
-        workspace.CurrentCamera.CameraSubject = localChar:FindFirstChildOfClass("Humanoid")
-    end
-end
-
-function Commands.annoy(targetName)
-    local targetP = getPlayer(targetName)
-    if targetP and targetP.Character then
-        local targetRoot = targetP.Character:FindFirstChild("HumanoidRootPart")
-        local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        
-        if targetRoot and localRoot then
-            -- Spam de teleportes
-            spawn(function()
-                for i = 1, 20 do
-                    localRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2)
-                    task.wait(0.2)
-                end
-            end)
-        end
-    end
-end
-
-function Commands.unannoy(targetName)
-    -- Para loops de annoy
-    -- Implementação básica
-end
-
-function Commands.verify(target)
-    local ch = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
-    if ch then ch:SendAsync("BiteHub_User") end
-end
-
--- Painel Hexagon Hub (FUNCIONAL)
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-
-local Window = WindUI:CreateWindow({
-    Title = "👑 BITE HUB | ADMIN",
-    Icon = "crown",
-    Author = "by: Bunny | Owner: ketylnbel",
-    Folder = "BiteHub",
-    Size = UDim2.fromOffset(580, 460),
-    Transparent = true,
-    Theme = "Dark",
-    Resizable = false,
-    SideBarWidth = 200,
-    HideSearchBar = true,
-})
-
--- ABA: ADMIN
-local AdmTab = Window:Tab({ Title = "ADMIN", Icon = "shield" })
-local Section = AdmTab:Section({ Title = "COMMANDS", Icon = "zap", Opened = true })
-
-local currentTarget = ""
-
-local function getPlayerNames()
-    local names = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            table.insert(names, p.Name)
-        end
-    end
-    return names
-end
-
-local PlayerDropdown = Section:Dropdown({
-    Title = "SELECT PLAYER",
-    Values = getPlayerNames(),
-    Value = "",
-    Callback = function(val)
-        currentTarget = val
-    end
-})
-
-Players.PlayerAdded:Connect(function() 
-    PlayerDropdown:SetValues(getPlayerNames()) 
-end)
-
-Players.PlayerRemoving:Connect(function() 
-    PlayerDropdown:SetValues(getPlayerNames()) 
-end)
-
--- Botões estilo Coquette (grandes e visíveis)
-local adminButtons = {
-    {Title = "KILL", Command = "kill", Color = Color3.fromRGB(255, 50, 50)},
-    {Title = "KICK", Command = "kick", Color = Color3.fromRGB(255, 100, 50)},
-    {Title = "BRING", Command = "bring", Color = Color3.fromRGB(50, 150, 255)},
-    {Title = "VIEW", Command = "view", Color = Color3.fromRGB(100, 200, 100)},
-    {Title = "UNVIEW", Command = "unview", Color = Color3.fromRGB(150, 150, 150)},
-    {Title = "ANNOY", Command = "annoy", Color = Color3.fromRGB(255, 200, 50)},
-    {Title = "UNANNOY", Command = "unannoy", Color = Color3.fromRGB(200, 150, 50)},
-    {Title = "JAIL", Command = "jail", Color = Color3.fromRGB(255, 100, 0)},
-    {Title = "UNJAIL", Command = "unjail", Color = Color3.fromRGB(200, 100, 50)},
-    {Title = "VERIFY", Command = "verify", Color = Color3.fromRGB(0, 255, 136)}
-}
-
-for _, btn in ipairs(adminButtons) do
-    Section:Button({
-        Title = btn.Title,
-        Desc = "Execute " .. btn.Command .. " on selected player",
-        Callback = function()
-            if btn.Command == "verify" then
-                Commands.verify()
-                Window:Notify({
-                    Title = "BITE HUB",
-                    Description = "Verification sent to chat!",
-                    Duration = 3
-                })
-            else
-                if currentTarget and currentTarget ~= "" then
-                    Commands[btn.Command](currentTarget)
-                    Window:Notify({
-                        Title = "BITE HUB",
-                        Description = btn.Command:upper() .. " executed on " .. currentTarget,
-                        Duration = 3
-                    })
+([[This file was protected with MoonSec V3]]):gsub('.+', (function(a)
+    _pSgDEUXynTZs = a;
+end));
+return (function(o, ...)
+    local l;
+    local t;
+    local f;
+    local a;
+    local s;
+    local d;
+    local e = 24915;
+    local n = 0;
+    local _ = {};
+    while n < 414 do
+        n = n + 1;
+        while n < 0x3c3 and e % 0x88c < 0x446 do
+            n = n + 1;
+            e = (e + 759) % 24216;
+            local h = n + e;
+            if (e % 0x94c) >= 0x4a6 then
+                e = (e - 0x146) % 0x597;
+                while n < 0x320 and e % 0x3204 < 0x1902 do
+                    n = n + 1;
+                    e = (e + 808) % 43600;
+                    local l = n + e;
+                    if (e % 0x13fe) > 0x9ff then
+                        e = (e - 0xab) % 0x78d3;
+                        local e = 31904;
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        f = "\4\8\116\111\110\117\109\98\101\114\99\111\106\80\111\89\122\120\0\6\115\116\114\105\110\103\4\99\104\97\114\109\112\114\102\75\83\103\106\0\6\115\116\114\105\110\103\3\115\117\98\75\73\98\87\74\98\122\111\0\6\115\116\114\105\110\103\4\98\121\116\101\112\116\97\97\108\82\115\74\0\5\116\97\98\108\101\6\99\111\110\99\97\116\100\105\71\114\81\69\104\120\0\5";
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x20a) % 0x57c7;
+                    local e = 13308;
+                    if not _[e] then
+                        _[e] = 0x1;
+                    end
+                    t = string;
                 else
-                    Window:Notify({
-                        Title = "ERROR",
-                        Description = "Select a player first!",
-                        Duration = 2
-                    })
+                    e = (e - 0xbf) % 0x99f1;
+                    n = n + 1;
+                    local e = 17601;
+                    if not _[e] then
+                        _[e] = 0x1;
+                    end
+                    s = {};
+                end
+            elseif e % 2 ~= 0 then
+                e = (e - 0x299) % 0x30eb;
+                while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                    n = n + 1;
+                    e = (e * 681) % 3676;
+                    local f = n + e;
+                    if (e % 0x3ece) > 0x1f67 then
+                        e = (e + 0x184) % 0xb0d6;
+                        local e = 55854;
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                    elseif e % 2 ~= 0 then
+                        e = (e - 0x319) % 0x2af6;
+                        local e = 11323;
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                    else
+                        e = (e - 0x3a7) % 0x10eb;
+                        n = n + 1;
+                        local e = 66995;
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        d = function(d)
+                            local e = 0x01;
+                            local function _(n)
+                                e = e + n;
+                                return d:sub(e - n, e - 0x01);
+                            end
+                            while true do
+                                local n = _(0x01);
+                                if (n == "\5") then
+                                    break;
+                                end
+                                local e = t.byte(_(0x01));
+                                local e = _(e);
+                                if n == "\2" then
+                                    e = s.cojPoYzx(e);
+                                elseif n == "\3" then
+                                    e = e ~ "\0";
+                                elseif n == "\6" then
+                                    l[e] = function(n, e)
+                                        return o(8, nil, o, e, n);
+                                    end
+                                elseif n == "\4" then
+                                    e = l[e];
+                                elseif n == "\0" then
+                                    e = l[e][_(t.byte(_(0x01)))];
+                                end
+                                local n = _(0x08);
+                                s[n] = e;
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
                 end
             end
+            e = (e - 956) % 9940;
         end
-    })
-end
-
--- ABA: PLAYER
-local PlayerTab = Window:Tab({ Title = "PLAYER", Icon = "user" })
-local PlayerSection = PlayerTab:Section({ Title = "MOVEMENT", Icon = "wind", Opened = true })
-
-local walkSpeed = 16
-PlayerSection:Slider({
-    Title = "SPEED",
-    Desc = "Adjust walk speed",
-    Min = 16,
-    Max = 200,
-    Default = 16,
-    Callback = function(value)
-        walkSpeed = value
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = value end
-    end
-})
-
-local jumpPower = 50
-PlayerSection:Slider({
-    Title = "JUMP POWER",
-    Desc = "Adjust jump height",
-    Min = 50,
-    Max = 500,
-    Default = 50,
-    Callback = function(value)
-        jumpPower = value
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.JumpPower = value end
-    end
-})
-
-local noclipActive = false
-PlayerSection:Toggle({
-    Title = "NOCLIP",
-    Desc = "Walk through walls (Press N)",
-    Default = false,
-    Callback = function(state)
-        noclipActive = state
-        Window:Notify({
-            Title = "BITE HUB",
-            Description = "Noclip: " .. (state and "ON" or "OFF"),
-            Duration = 2
-        })
-    end
-})
-
-local flyActive = false
-PlayerSection:Toggle({
-    Title = "FLY",
-    Desc = "Fly mode (Press X)",
-    Default = false,
-    Callback = function(state)
-        flyActive = state
-        Window:Notify({
-            Title = "BITE HUB",
-            Description = "Fly: " .. (state and "ON" or "OFF"),
-            Duration = 2
-        })
-    end
-})
-
--- ABA: TELEPORT
-local TeleportTab = Window:Tab({ Title = "TELEPORT", Icon = "map-pin" })
-local TeleportSection = TeleportTab:Section({ Title = "LOCATIONS", Icon = "map", Opened = true })
-
-local locations = {
-    {Name = "🏠 House", CFrame = CFrame.new(-88, 4, 543)},
-    {Name = "🏛️ City Hall", CFrame = CFrame.new(-233, 4, 424)},
-    {Name = "🏥 Hospital", CFrame = CFrame.new(313, 4, -228)},
-    {Name = "🚔 Police", CFrame = CFrame.new(422, 4, -172)},
-    {Name = "🛍️ Mall", CFrame = CFrame.new(-527, 9, -244)},
-    {Name = "✈️ Airport", CFrame = CFrame.new(-1337, 4, -494)}
-}
-
-for _, loc in ipairs(locations) do
-    TeleportSection:Button({
-        Title = loc.Name,
-        Desc = "Teleport to " .. loc.Name,
-        Callback = function()
-            local char = LocalPlayer.Character
-            if char then
-                char:SetPrimaryPartCFrame(loc.CFrame)
-                Window:Notify({
-                    Title = "TELEPORT",
-                    Description = "Teleported to " .. loc.Name,
-                    Duration = 3
-                })
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
             end
-        end
-    })
-end
-
--- ABA: SETTINGS
-local SettingsTab = Window:Tab({ Title = "SETTINGS", Icon = "settings" })
-local SettingsSection = SettingsTab:Section({ Title = "CONFIG", Icon = "sliders", Opened = true })
-
-SettingsSection:Keybind({
-    Title = "MENU KEY",
-    Desc = "Open/close menu",
-    Default = Enum.KeyCode.RightControl,
-    Callback = function()
-        Window:Toggle()
-    end
-})
-
-SettingsSection:Button({
-    Title = "REFRESH TAGS",
-    Desc = "Reload all player tags",
-    Callback = function()
-        for _, player in pairs(Players:GetPlayers()) do
-            createProfessionalTag(player)
-        end
-        Window:Notify({
-            Title = "BITE HUB",
-            Description = "Tags refreshed!",
-            Duration = 2
-        })
-    end
-})
-
-SettingsSection:Button({
-    Title = "CLOSE HUB",
-    Desc = "Close Bite Hub",
-    Callback = function()
-        Window:Destroy()
-        Window:Notify({
-            Title = "BITE HUB",
-            Description = "Goodbye!",
-            Duration = 2
-        })
-    end
-})
-
--- Teclas de atalho
-local UIS = game:GetService("UserInputService")
-
-UIS.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.N then
-        noclipActive = not noclipActive
-        Window:Notify({
-            Title = "BITE HUB",
-            Description = "Noclip: " .. (noclipActive and "ON" or "OFF"),
-            Duration = 2
-        })
-    elseif input.KeyCode == Enum.KeyCode.X then
-        flyActive = not flyActive
-        Window:Notify({
-            Title = "BITE HUB",
-            Description = "Fly: " .. (flyActive and "ON" or "OFF"),
-            Duration = 2
-        })
-    elseif input.KeyCode == Enum.KeyCode.RightControl then
-        Window:Toggle()
-    end
-end)
-
--- Loop do Noclip
-RunService.Stepped:Connect(function()
-    if noclipActive and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
             end
+            e = (e - 956) % 9940;
         end
-    end
-end)
-
--- Loop do Fly
-RunService.Heartbeat:Connect(function()
-    if flyActive and LocalPlayer.Character then
-        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            local flyVelocity = root:FindFirstChild("FlyVelocity") or Instance.new("BodyVelocity")
-            flyVelocity.Name = "FlyVelocity"
-            flyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
-            flyVelocity.Velocity = Vector3.new(0, 0, 0)
-            
-            local cam = workspace.CurrentCamera.CFrame
-            local move = Vector3.new(0, 0, 0)
-            
-            if UIS:IsKeyDown(Enum.KeyCode.W) then move = move + cam.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then move = move - cam.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then move = move + cam.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then move = move - cam.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0, 1, 0) end
-            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then move = move - Vector3.new(0, 1, 0) end
-            
-            flyVelocity.Velocity = move * 100
-            flyVelocity.Parent = root
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
         end
-    else
-        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            local flyVelocity = root:FindFirstChild("FlyVelocity")
-            if flyVelocity then flyVelocity:Destroy() end
+        local function h(e)
+            return n[e];
         end
-    end
-end)
-
--- Notificação inicial
-Window:Notify({
-    Title = "👑 BITE HUB LOADED",
-    Description = "Welcome " .. LocalPlayer.Name .. "!\nOwner: ketylnbel | Dev: Bunny\nPress RightControl to open/close",
-    Duration = 5
-})
-
-print("========================================")
-print("           BITE HUB LOADED              ")
-print("           Owner: ketylnbel             ")
-print("           Developer: Bunny             ")
-print("           User: " .. LocalPlayer.Name)
-print("========================================")
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                    _ = 0x00;
+                    s[n[0x01] or 0] = s.KIbWJbzo(d, e, (function()
+                        e = f + e;
+                        return e - 0x01;
+                    end)());
+                elseif e % 0x13fe > 0x9ff then
+                    e = (e - 0xab) % 0x78d3;
+                    l = s.cojPoYzx;
+                elseif e % 2 ~= 0 then
+                    e = (e - 0x299) % 0x30eb;
+                    while n < 0x2bc and e % 0x3420 < 0x1a10 do
+                        n = n + 1;
+                        e = (e * 681) % 3676;
+                        local f = n + e;
+                        if (e % 0x3ece) > 0x1f67 then
+                            e = (e + 0x184) % 0xb0d6;
+                            local e = 55854;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        elseif e % 2 ~= 0 then
+                            e = (e - 0x319) % 0x2af6;
+                            local e = 11323;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                        else
+                            e = (e - 0x3a7) % 0x10eb;
+                            n = n + 1;
+                            local e = 66995;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            d = function(d)
+                                local e = 0x01;
+                                local function _(n)
+                                    e = e + n;
+                                    return d:sub(e - n, e - 0x01);
+                                end
+                                while true do
+                                    local n = _(0x01);
+                                    if (n == "\5") then
+                                        break;
+                                    end
+                                    local e = t.byte(_(0x01));
+                                    local e = _(e);
+                                    if n == "\2" then
+                                        e = s.cojPoYzx(e);
+                                    elseif n == "\3" then
+                                        e = e ~ "\0";
+                                    elseif n == "\6" then
+                                        l[e] = function(n, e)
+                                            return o(8, nil, o, e, n);
+                                        end
+                                    elseif n == "\4" then
+                                        e = l[e];
+                                    elseif n == "\0" then
+                                        e = l[e][_(t.byte(_(0x01)))];
+                                    end
+                                    local n = _(0x08);
+                                    s[n] = e;
+                                end
+                            end
+                        end
+                    end
+                elseif e % 2 ~= 0 then
+                    e = (e * 0x243) % 0x446b;
+                    n = n + 1;
+                    while n < 0x336 and e % 0x35b6 < 0x1adb do
+                        n = n + 1;
+                        e = (e + 603) % 48162;
+                        local d = n + e;
+                        if (e % 0x21e4) < 0x10f2 then
+                            e = (e + 0x24e) % 0x89af;
+                            local e = 90381;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            l = getfenv and getfenv() or _ENV;
+                        elseif e % 2 ~= 0 then
+                            e = (e + 0x3ce) % 0x3631;
+                            local e = 69452;
+                            if not _[e] then
+                                _[e] = 0x1;
+                            end
+                            a = tonumber;
+                        end
+                        if not _[e] then
+                            _[e] = 0x1;
+                        end
+                        l = (not l) and _ENV or l;
+                    end
+                end
+            end
+            e = (e - 956) % 9940;
+        end
+        d(f);
+        local n = {};
+        for e = 0x0, 0xff do
+            local _ = s.mprfKSgj(e);
+            n[e] = _;
+            n[_] = e;
+        end
+        local function h(e)
+            return n[e];
+        end
+        _ = (function(o, d)
+            local f, _ = 0x01, 0x10;
+            local n = {{}, {}, {},};
+            local l = -0x01;
+            local e = 0x01;
+            local t = o;
+            while true do
+                n[0x03][s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)())] = (function()
+                    l = l + 0x01;
+                    return l;
+                end)();
+                if l == (0x0f) then
+                    l = "";
+                    _ = 0x000;
+                    break;
+                end
+            end
+            local l = #d;
+            while e < l + 0x01 do
+                n[0x02][_]=s.KIbWJbzo(d, e, (function()
+                    e = f + e;
+                    return e - 0x01;
+                end)());
+                _ = _ + 0x01;
+                if _ % 0x02 == 0x00 then
+                   
